@@ -20,6 +20,45 @@ import (
 	"go.opentelemetry.io/collector/config/configopaque"
 )
 
+func TestNewDefaultConfig(t *testing.T) {
+	cfg := NewDefaultConfig()
+	if cfg == nil {
+		t.Error("Expected non-nil Config, got nil")
+	}
+}
+
+func TestNewDefaultClientConfig(t *testing.T) {
+	cfg := NewDefaultClientConfig()
+	if cfg == nil {
+		t.Error("Expected non-nil ClientConfig, got nil")
+	}
+}
+
+func TestNewDefaultServerConfig(t *testing.T) {
+	cfg := NewDefaultServerConfig()
+	if cfg == nil {
+		t.Fatal("Expected non-nil ServerConfig, got nil")
+	}
+
+	// Add additional assertions based on the default values of the ServerConfig struct if needed.
+	if cfg.ClientCAFile != "" {
+		t.Errorf("Expected empty string for ClientCAFile, got %s", cfg.ClientCAFile)
+	}
+
+	if cfg.ReloadClientCAFile != false {
+		t.Errorf("Expected false for ReloadClientCAFile, got %v", cfg.ReloadClientCAFile)
+	}
+}
+
+func TestNewDefaultCertReloader(t *testing.T) {
+	reloader := NewDefaultCertReloader()
+
+	// Verify that the reloader is not nil
+	if reloader == nil {
+		t.Fatal("Expected non-nil certReloader, got nil")
+	}
+}
+
 func TestOptionsToConfig(t *testing.T) {
 	tests := []struct {
 		name        string
