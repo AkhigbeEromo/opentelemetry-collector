@@ -75,6 +75,10 @@ type Config struct {
 	ReloadInterval time.Duration `mapstructure:"reload_interval"`
 }
 
+func NewDefaultConfig() *Config {
+	return &Config{}
+}
+
 // TSLClientSetting contains TLS configurations that are specific to client
 // connections in addition to the common configurations.
 // Deprecated: [v0.96.0] Use ClientConfig instead.
@@ -104,6 +108,12 @@ type ClientConfig struct {
 	ServerName string `mapstructure:"server_name_override"`
 }
 
+func NewDefaultClientConfig() *ClientConfig {
+	return &ClientConfig{
+		TLSSetting: Config{},
+	}
+}
+
 // TLSServerSetting contains TLS configurations that are specific to server
 // connections in addition to the common configurations.
 // Deprecated: [v0.96.0] Use ServerConfig instead.
@@ -128,29 +138,41 @@ type ServerConfig struct {
 	ReloadClientCAFile bool `mapstructure:"client_ca_file_reload"`
 }
 
+func NewDefaultServerConfig() *ServerConfig {
+	return &ServerConfig{
+		TLSSetting: Config{},
+	}
+}
+
 // certReloader is a wrapper object for certificate reloading
 // Its GetCertificate method will either return the current certificate or reload from disk
 // if the last reload happened more than ReloadInterval ago
-type certReloader struct {
+type CertReloader struct {
 	nextReload time.Time
 	cert       *tls.Certificate
 	lock       sync.RWMutex
 	tls        Config
 }
 
-func (c Config) newCertReloader() (*certReloader, error) {
+func NewDefaultCertReloader() *CertReloader {
+	return &CertReloader{
+		tls: Config{},
+	}
+}
+
+func (c Config) newCertReloader() (*CertReloader, error) {
 	cert, err := c.loadCertificate()
 	if err != nil {
 		return nil, err
 	}
-	return &certReloader{
+	return &CertReloader{
 		tls:        c,
 		nextReload: time.Now().Add(c.ReloadInterval),
 		cert:       &cert,
 	}, nil
 }
 
-func (r *certReloader) GetCertificate() (*tls.Certificate, error) {
+func (r *CertReloader) GetCertificate() (*tls.Certificate, error) {
 	now := time.Now()
 	// Read locking here before we do the time comparison
 	// If a reload is in progress this will block and we will skip reloading in the current
@@ -202,7 +224,7 @@ func (c Config) loadTLSConfig() (*tls.Config, error) {
 	var getCertificate func(*tls.ClientHelloInfo) (*tls.Certificate, error)
 	var getClientCertificate func(*tls.CertificateRequestInfo) (*tls.Certificate, error)
 	if c.hasCert() || c.hasKey() {
-		var certReloader *certReloader
+		var certReloader *CertReloader
 		certReloader, err = c.newCertReloader()
 		if err != nil {
 			return nil, fmt.Errorf("failed to load TLS cert and key: %w", err)
